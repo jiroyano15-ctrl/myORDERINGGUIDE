@@ -195,7 +195,7 @@ export default function Sidebar({
                       setTempName(restaurantName);
                       setIsEditingName(true);
                     }}
-                    className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 transition cursor-pointer group-hover/title:opacity-100 lg:opacity-0"
+                    className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-600 transition cursor-pointer group-hover/title:opacity-100 lg:opacity-0"
                     title="Edit Name"
                   >
                     <Pencil className="w-3.5 h-3.5" />
