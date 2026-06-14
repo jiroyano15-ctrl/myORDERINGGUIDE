@@ -34,8 +34,10 @@ import {
 
 export default function App() {
   const [loggedUsername, setLoggedUsername] = useState<string | null>(() => {
+    if (!clientConfig.authEnabled) return "guest";
     return localStorage.getItem("guest_rsvp_mngr_active_username");
   });
+
 
   // Dynamic LocalStorage key generator per independent Gmail account to guarantee isolate sandbox state
   const getAccountKey = (keyName: string) => {
