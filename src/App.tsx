@@ -10,6 +10,9 @@ import { Menu, Loader2, RefreshCw } from "lucide-react";
 import { Guest, TableConfig, RsvpStatus, EntryType } from "./types";
 import { initialGuests, initialTables, initialStaff } from "./data/mockData";
 
+// Config
+import { clientConfig } from "./lib/config";
+
 // Specialized Views & Overlays
 import Sidebar from "./components/Sidebar";
 import DashboardView from "./components/DashboardView";
@@ -27,6 +30,7 @@ import {
   getSystemTime24InTimezone,
   POPULAR_TIMEZONES
 } from "./utils/timezone";
+
 
 export default function App() {
   const [loggedUsername, setLoggedUsername] = useState<string | null>(() => {
@@ -55,9 +59,10 @@ export default function App() {
   // Navigation Tabs state: "dashboard" | "reservations" | "tablemap"
   const [activeTab, setActiveTab] = useState<"dashboard" | "reservations" | "tablemap">("dashboard");
 
-  // Restaurant Custom Brand Configuration
-  const [restaurantName, setRestaurantName] = useState("Guest Manager");
+  // Restaurant Custom Brand Configuration (populated from env, overridable by user)
+  const [restaurantName, setRestaurantName] = useState(clientConfig.appName);
   const [restaurantPhoto, setRestaurantPhoto] = useState<string | null>(null);
+
 
   const handleSaveRestaurantName = (name: string) => {
     setRestaurantName(name);
@@ -255,12 +260,15 @@ export default function App() {
     setTables(loadedTables);
     setStaffList(loadedStaff);
 
-    // Brand Name & Photo
-    setRestaurantName(cachedName || "Guest Manager");
+    // Brand Name & Photo (default comes from env config)
+    const cachedName = localStorage.getItem("restaurant_name");
+    const defaultName = cachedName || clientConfig.appName;
+    setRestaurantName(defaultName);
     if (!cachedName) {
-      localStorage.setItem("restaurant_name", "Guest Manager");
+      localStorage.setItem("restaurant_name", clientConfig.appName);
     }
     setRestaurantPhoto(cachedPhoto || null);
+
 
     // Timezone
     if (cachedTz) {
