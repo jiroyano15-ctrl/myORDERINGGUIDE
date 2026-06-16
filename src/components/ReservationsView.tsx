@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Guest, RsvpStatus, EntryType } from "../types";
+import { Guest, RsvpStatus, EntryType, TableConfig } from "../types";
 import { Search, Calendar, Filter, X, Edit, Trash2 } from "lucide-react";
 
 interface ReservationsViewProps {
@@ -14,6 +14,7 @@ interface ReservationsViewProps {
   onUpdateStatus: (id: string, newStatus: RsvpStatus) => void;
   onBulkUpdateStatus?: (ids: string[], newStatus: RsvpStatus) => void;
   onBulkDeleteGuests?: (ids: string[]) => void;
+  tables?: TableConfig[];
 }
 
 export default function ReservationsView({
@@ -22,18 +23,21 @@ export default function ReservationsView({
   onDeleteGuest,
   onUpdateStatus,
   onBulkUpdateStatus,
-  onBulkDeleteGuests
+  onBulkDeleteGuests,
+  tables = []
 }: ReservationsViewProps) {
   const getTableIcon = (tableName: string) => {
+    const match = tables.find(t => t.name === tableName);
+    if (match && match.icon) return match.icon;
     try {
       const cachedTables = localStorage.getItem("guest_rsvp_mngr_tables");
       if (cachedTables) {
         const parsed = JSON.parse(cachedTables);
-        const match = parsed.find((t: any) => t.name === tableName);
-        if (match && match.icon) return match.icon;
+        const m = parsed.find((t: any) => t.name === tableName);
+        if (m && m.icon) return m.icon;
       }
     } catch (e) {}
-    return "🔥";
+    return "🪑";
   };
 
   // Filters State
