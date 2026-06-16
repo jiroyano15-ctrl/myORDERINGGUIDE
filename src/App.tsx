@@ -638,6 +638,7 @@ export default function App() {
               onDeleteGuest={handleDeleteGuest}
               onUpdateStatus={handleUpdateGuestStatus}
               timezone={activeTz}
+              tables={tables}
             />
           )}
 
@@ -649,6 +650,7 @@ export default function App() {
               onUpdateStatus={handleUpdateGuestStatus}
               onBulkUpdateStatus={handleBulkUpdateGuestStatus}
               onBulkDeleteGuests={handleBulkDeleteGuests}
+              tables={tables}
             />
           )}
 
