@@ -180,17 +180,7 @@ export default function LoginScreen({
     }
   }, [scriptUrl]);
 
-  // Seed default demo account if registration registry is empty
-  useEffect(() => {
-    const registryKey = "guest_rsvp_mngr_global_user_registry";
-    const registryStr = localStorage.getItem(registryKey);
-    if (!registryStr) {
-      const demoAccounts = [
-        { email: "demo@gmail.com", password: "demopassword" }
-      ];
-      localStorage.setItem(registryKey, JSON.stringify(demoAccounts));
-    }
-  }, []);
+  // No demo accounts are pre-seeded. Each browser starts with an empty registry.
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -559,40 +549,7 @@ export default function LoginScreen({
                   {/* Account Selector Table List */}
                   {!showGoogleCustomInput ? (
                     <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                      {/* Option 1: Current developer email */}
-                      <button
-                        type="button"
-                        onClick={() => handleGoogleAuth("jero.cp15@gmail.com")}
-                        className="w-full flex items-center gap-3.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left transition cursor-pointer"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
-                          J
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <p className="font-semibold text-xs text-slate-800 truncate">Jero</p>
-                          <p className="text-[10px] text-slate-500 truncate">jero.cp15@gmail.com</p>
-                        </div>
-                        <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-[#4285F4] font-bold shrink-0">
-                          ✓
-                        </div>
-                      </button>
-
-                      {/* Option 2: Demo account */}
-                      <button
-                        type="button"
-                        onClick={() => handleGoogleAuth("demo@gmail.com")}
-                        className="w-full flex items-center gap-3.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left transition cursor-pointer"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
-                          D
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <p className="font-semibold text-xs text-slate-800 truncate">Demo User</p>
-                          <p className="text-[10px] text-slate-500 truncate">demo@gmail.com</p>
-                        </div>
-                      </button>
-
-                      {/* Option 3: Manual Email login */}
+                      {/* Manual Email login (no preset demo / example accounts) */}
                       <button
                         type="button"
                         onClick={() => setShowGoogleCustomInput(true)}
@@ -602,8 +559,8 @@ export default function LoginScreen({
                           +
                         </div>
                         <div className="flex-grow">
-                          <p className="font-bold text-xs text-[#4285F4]">Use another Google Account</p>
-                          <p className="text-[10px] text-slate-500">Sign in with any custom Gmail address</p>
+                          <p className="font-bold text-xs text-[#4285F4]">Use a Google Account</p>
+                          <p className="text-[10px] text-slate-500">Sign in with your Gmail address</p>
                         </div>
                       </button>
                     </div>
