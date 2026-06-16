@@ -190,7 +190,7 @@ export default function App() {
     const cachedPhoto = localStorage.getItem("restaurant_photo");
     const cachedTz = localStorage.getItem("timezone");
 
-    let loadedGuests = initialGuests;
+    let loadedGuests: Guest[] = [];
     let loadedTables = initialTables;
     let loadedStaff = initialStaff;
 
@@ -216,30 +216,19 @@ export default function App() {
           throw new Error("Local Storage 'restaurant_reservations' is not a JSON Array");
         }
       } catch (err) {
-        console.error("Local Storage is corrupted! Restoring back up & auto-recovering...", err);
-        localStorage.setItem("restaurant_reservations", JSON.stringify(initialGuests));
-        loadedGuests = initialGuests;
+        console.error("Local Storage is corrupted! Resetting to empty list...", err);
+        localStorage.setItem("restaurant_reservations", JSON.stringify([]));
+        loadedGuests = [];
       }
     } else {
-      localStorage.setItem("restaurant_reservations", JSON.stringify(initialGuests));
+      // Start with an empty list — no example/demo guests
+      localStorage.setItem("restaurant_reservations", JSON.stringify([]));
     }
 
     if (cachedTables) {
       try {
-        const parsed = JSON.parse(cachedTables);
-        loadedTables = parsed.map((t: TableConfig) => {
-          let newIcon = t.icon;
-          if (!["🔥", "💧", "🍹"].includes(t.icon)) {
-            if (t.icon === "🍹" || t.icon === "🍸" || t.icon === "🍷" || t.icon === "🍺" || t.icon === "🚪") {
-              newIcon = "🍹";
-            } else if (t.icon === "🪑") {
-              newIcon = "🔥";
-            } else {
-              newIcon = "💧";
-            }
-          }
-          return { ...t, icon: newIcon };
-        });
+        // Preserve whatever icon the user assigned to each table
+        loadedTables = JSON.parse(cachedTables);
       } catch (e) {
         loadedTables = initialTables;
       }
@@ -649,6 +638,7 @@ export default function App() {
               onDeleteGuest={handleDeleteGuest}
               onUpdateStatus={handleUpdateGuestStatus}
               timezone={activeTz}
+              tables={tables}
             />
           )}
 
@@ -660,6 +650,7 @@ export default function App() {
               onUpdateStatus={handleUpdateGuestStatus}
               onBulkUpdateStatus={handleBulkUpdateGuestStatus}
               onBulkDeleteGuests={handleBulkDeleteGuests}
+              tables={tables}
             />
           )}
 
