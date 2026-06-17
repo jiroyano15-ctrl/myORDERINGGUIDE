@@ -7,8 +7,8 @@ import React, { useState, useRef } from "react";
 import { LayoutDashboard, CalendarRange, Map, UserPlus, Footprints, Users, FileSpreadsheet, Printer, Shield, LogOut, Camera, Check, X, Pencil, Trash2, Database } from "lucide-react";
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab: "dashboard" | "reservations" | "tablemap";
+  setActiveTab: React.Dispatch<React.SetStateAction<"dashboard" | "reservations" | "tablemap">>;
   openEntryModal: (type: "Reservation" | "Walk-In") => void;
   openStaffModal: () => void;
   openSyncModal: () => void;
