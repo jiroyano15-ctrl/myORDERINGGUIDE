@@ -10,12 +10,6 @@ import { Menu, Loader2, RefreshCw } from "lucide-react";
 import { Guest, TableConfig, RsvpStatus, EntryType } from "./types";
 import { initialGuests, initialTables, initialStaff } from "./data/mockData";
 
-// Config
-import { clientConfig } from "./lib/config";
-
-// Auth
-import { supabase } from "@/integrations/supabase/client";
-
 // Specialized Views & Overlays
 import Sidebar from "./components/Sidebar";
 import DashboardView from "./components/DashboardView";
@@ -34,40 +28,36 @@ import {
   POPULAR_TIMEZONES
 } from "./utils/timezone";
 
-
 export default function App() {
-  const [loggedUsername, setLoggedUsername] = useState<string | null>(null);
+  const [loggedUsername, setLoggedUsername] = useState<string | null>(() => {
+    return localStorage.getItem("guest_rsvp_mngr_active_username");
+  });
 
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedUsername(session?.user?.email ?? null);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setLoggedUsername(data.session?.user?.email ?? null);
-    });
-    return () => { sub.subscription.unsubscribe(); };
-  }, []);
-
-  // Per-account localStorage key namespace (UI prefs only — not credentials)
+  // Dynamic LocalStorage key generator per independent Gmail account to guarantee isolate sandbox state
   const getAccountKey = (keyName: string) => {
     if (!loggedUsername) return `guest_rsvp_mngr_${keyName}`;
     const safeUser = loggedUsername.toLowerCase().trim().replace(/[@.]/g, "_");
     return `guest_rsvp_mngr_${safeUser}_${keyName}`;
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLoginSuccess = (username: string) => {
+    const cleanEmail = username.trim().toLowerCase();
+    setLoggedUsername(cleanEmail);
+    localStorage.setItem("guest_rsvp_mngr_active_username", cleanEmail);
+  };
+
+  const handleLogout = () => {
     setLoggedUsername(null);
+    localStorage.removeItem("guest_rsvp_mngr_active_username");
     showToast("🔓 Logged out of your session successfully");
   };
 
   // Navigation Tabs state: "dashboard" | "reservations" | "tablemap"
   const [activeTab, setActiveTab] = useState<"dashboard" | "reservations" | "tablemap">("dashboard");
 
-  // Restaurant Custom Brand Configuration (populated from env, overridable by user)
-  const [restaurantName, setRestaurantName] = useState(clientConfig.appName);
+  // Restaurant Custom Brand Configuration
+  const [restaurantName, setRestaurantName] = useState("Guest Manager");
   const [restaurantPhoto, setRestaurantPhoto] = useState<string | null>(null);
-
 
   const handleSaveRestaurantName = (name: string) => {
     setRestaurantName(name);
@@ -193,7 +183,7 @@ export default function App() {
     const cachedPhoto = localStorage.getItem("restaurant_photo");
     const cachedTz = localStorage.getItem("timezone");
 
-    let loadedGuests: Guest[] = [];
+    let loadedGuests = initialGuests;
     let loadedTables = initialTables;
     let loadedStaff = initialStaff;
 
@@ -219,19 +209,30 @@ export default function App() {
           throw new Error("Local Storage 'restaurant_reservations' is not a JSON Array");
         }
       } catch (err) {
-        console.error("Local Storage is corrupted! Resetting to empty list...", err);
-        localStorage.setItem("restaurant_reservations", JSON.stringify([]));
-        loadedGuests = [];
+        console.error("Local Storage is corrupted! Restoring back up & auto-recovering...", err);
+        localStorage.setItem("restaurant_reservations", JSON.stringify(initialGuests));
+        loadedGuests = initialGuests;
       }
     } else {
-      // Start with an empty list — no example/demo guests
-      localStorage.setItem("restaurant_reservations", JSON.stringify([]));
+      localStorage.setItem("restaurant_reservations", JSON.stringify(initialGuests));
     }
 
     if (cachedTables) {
       try {
-        // Preserve whatever icon the user assigned to each table
-        loadedTables = JSON.parse(cachedTables);
+        const parsed = JSON.parse(cachedTables);
+        loadedTables = parsed.map((t: TableConfig) => {
+          let newIcon = t.icon;
+          if (!["🔥", "💧", "🍹"].includes(t.icon)) {
+            if (t.icon === "🍹" || t.icon === "🍸" || t.icon === "🍷" || t.icon === "🍺" || t.icon === "🚪") {
+              newIcon = "🍹";
+            } else if (t.icon === "🪑") {
+              newIcon = "🔥";
+            } else {
+              newIcon = "💧";
+            }
+          }
+          return { ...t, icon: newIcon };
+        });
       } catch (e) {
         loadedTables = initialTables;
       }
@@ -254,15 +255,12 @@ export default function App() {
     setTables(loadedTables);
     setStaffList(loadedStaff);
 
-    // Brand Name & Photo (default comes from env config)
-    const defaultName = cachedName || clientConfig.appName;
-    setRestaurantName(defaultName);
+    // Brand Name & Photo
+    setRestaurantName(cachedName || "Guest Manager");
     if (!cachedName) {
-      localStorage.setItem("restaurant_name", clientConfig.appName);
+      localStorage.setItem("restaurant_name", "Guest Manager");
     }
     setRestaurantPhoto(cachedPhoto || null);
-
-
 
     // Timezone
     if (cachedTz) {
@@ -495,14 +493,19 @@ export default function App() {
       <div id="guest-rsvp-manager-login-screen-wrap" className="min-h-screen bg-[#f3f6fa]">
         <div
           id="applet-toast-banner"
-          className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl bg-navy border border-gold text-gold font-bold text-xs shadow-xl transition-all duration-300 transform z-[2100] flex items-center gap-2.5 ${
+          className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl bg-navy border border-gold/40 text-gold-light font-bold text-xs shadow-xl transition-all duration-300 transform z-[2100] flex items-center gap-2.5 ${
             isToastVisible ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95 pointer-events-none"
           }`}
         >
           <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
           <span>{toastMessage}</span>
         </div>
-        <LoginScreen isSyncing={false} />
+        <LoginScreen 
+          onLoginSuccess={handleLoginSuccess} 
+          isSyncing={false}
+          scriptUrl=""
+          onSaveUrl={() => {}}
+        />
       </div>
     );
   }
@@ -513,7 +516,7 @@ export default function App() {
       {/* Royal Luxury Toast Alert messages */}
       <div
         id="applet-toast-banner"
-        className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl bg-navy border border-gold text-gold font-bold text-xs shadow-xl transition-all duration-300 transform z-[2100] flex items-center gap-2.5 ${
+        className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl bg-navy border border-gold/40 text-gold-light font-bold text-xs shadow-xl transition-all duration-300 transform z-[2100] flex items-center gap-2.5 ${
           isToastVisible ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95 pointer-events-none"
         }`}
       >
@@ -601,7 +604,7 @@ export default function App() {
 
         {/* Unsaved Changes Banner */}
         {hasUnsavedChanges && (
-          <div id="unsaved-changes-banner" className="bg-amber-100 border-b border-amber-300 px-6 py-2.5 flex items-center justify-between text-navy text-xs font-semibold animate-fadeIn">
+          <div id="unsaved-changes-banner" className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 flex items-center justify-between text-navy text-xs font-semibold animate-fadeIn">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <span className="truncate">You have unsaved changes in-memory (Autosave is suspended). Please save or synchronise manually.</span>
@@ -636,7 +639,6 @@ export default function App() {
               onDeleteGuest={handleDeleteGuest}
               onUpdateStatus={handleUpdateGuestStatus}
               timezone={activeTz}
-              tables={tables}
             />
           )}
 
@@ -648,7 +650,6 @@ export default function App() {
               onUpdateStatus={handleUpdateGuestStatus}
               onBulkUpdateStatus={handleBulkUpdateGuestStatus}
               onBulkDeleteGuests={handleBulkDeleteGuests}
-              tables={tables}
             />
           )}
 

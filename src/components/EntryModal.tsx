@@ -125,9 +125,122 @@ export default function EntryModal({
     }
   }, [isOpen, guestToEdit, initialType]);
 
-  // Repeat guest detection / auto-pull from previous data has been intentionally
-  // disabled: new Reservation and Walk-In entries must start fresh, with no
-  // history-based auto-fill from prior reservations or returning guests.
+  // Listen to Name input changes for REPEAT GUEST DETECTION
+  // We compare globally against other guests (excluding current guest if editing)
+  useEffect(() => {
+    if (!name.trim() || !isOpen) {
+      setRepeatGuest(null);
+      return;
+    }
+
+    // Call simulated search or search local storage array
+    const searchName = name.trim().toLowerCase();
+    const cachedGuestsStr = localStorage.getItem(storageKey);
+    if (cachedGuestsStr) {
+      try {
+        const guestList: Guest[] = JSON.parse(cachedGuestsStr);
+        const match = guestList.find(
+          g => g.name.toLowerCase() === searchName && (!guestToEdit || g.id !== guestToEdit.id)
+        );
+        if (match) {
+          setRepeatGuest(match);
+        } else {
+          setRepeatGuest(null);
+        }
+      } catch (e) {
+        setRepeatGuest(null);
+      }
+    }
+  }, [name, isOpen, guestToEdit]);
+
+  // Listen to Phone input changes for REPEAT GUEST/PHONE DETECTION
+  // If the phone number exists, we automatically pull the record to edit, and save as new.
+  useEffect(() => {
+    const rawPhone = typeof phone === "string" ? phone : String(phone || "");
+    if (!rawPhone.trim() || !isOpen) {
+      setRepeatGuestByPhone(null);
+      setHasPulledDetails(false);
+      return;
+    }
+
+    const cleanPhone = rawPhone.trim();
+    const normalizedClean = cleanPhone.replace(/[\s\-\(\)\+\.]/g, "");
+    if (normalizedClean.length < 4) {
+      setRepeatGuestByPhone(null);
+      setHasPulledDetails(false);
+      return;
+    }
+
+    const cachedGuestsStr = localStorage.getItem(storageKey);
+    let guestList: Guest[] = [];
+    if (cachedGuestsStr) {
+      try {
+        guestList = JSON.parse(cachedGuestsStr);
+      } catch (e) {}
+    }
+
+    // Combine current guestList with returningGuestsList to search returning guests
+    const allGuestsToMatch: Guest[] = [...guestList];
+    returningGuestsList.forEach((rg, idx) => {
+      const alreadyHasInLocal = guestList.some(g => {
+        if (!g.phone) return false;
+        const normG = String(g.phone).replace(/[\s\-\(\)\+\.]/g, "");
+        const normRG = String(rg.phone || "").replace(/[\s\-\(\)\+\.]/g, "");
+        return normG === normRG;
+      });
+      if (!alreadyHasInLocal) {
+        allGuestsToMatch.push({
+          id: `seed_rg_${idx}_${rg.phone}`,
+          name: rg.name,
+          phone: String(rg.phone || ""),
+          type: rg.type,
+          date: getTodayString(),
+          time: getSystemTime24(),
+          pax: 2,
+          table: "Unassigned",
+          status: RsvpStatus.CONFIRMED,
+          notes: "Returning Guest",
+          staff: "Unassigned"
+        });
+      }
+    });
+
+    const match = allGuestsToMatch.find(g => {
+      if (!g.phone) return false;
+      const normG = String(g.phone).replace(/[\s\-\(\)\+\.]/g, "");
+      return normG === normalizedClean && (!guestToEdit || g.id !== guestToEdit.id);
+    });
+
+    if (match) {
+      setRepeatGuestByPhone(match);
+      if (!hasPulledDetails) {
+        setName(match.name);
+        if (match.table && match.table !== "Unassigned") {
+          setTable(match.table);
+        }
+        if (match.notes) {
+          setNotes(match.notes);
+        }
+        if (match.staff && match.staff !== "Unassigned") {
+          setStaff(match.staff);
+        }
+        setPax(match.pax || 2);
+        setType(match.type);
+        setIsWaitlist(!!match.isWaitlist);
+        setHasPulledDetails(true);
+      }
+    } else {
+      setRepeatGuestByPhone(null);
+      const anyPhonePrefixMatch = allGuestsToMatch.some(g => {
+        if (!g.phone) return false;
+        const normG = String(g.phone).replace(/[\s\-\(\)\+\.]/g, "");
+        return normG.startsWith(normalizedClean) && (!guestToEdit || g.id !== guestToEdit.id);
+      });
+      if (!anyPhonePrefixMatch) {
+         setHasPulledDetails(false);
+      }
+    }
+  }, [phone, isOpen, guestToEdit, hasPulledDetails]);
 
   // Listen to table / date / time changes for DOUBLE GUEST SEATING CONFLICT
   useEffect(() => {
@@ -159,30 +272,6 @@ export default function EntryModal({
       }
     }
   }, [table, date, isOpen, guestToEdit]);
-
-  // Compute tables occupied by guests currently Seated or Arrived on this date
-  const occupiedTables = React.useMemo(() => {
-    const set = new Set<string>();
-    if (!isOpen || !date) return set;
-    try {
-      const cached = localStorage.getItem(storageKey);
-      if (!cached) return set;
-      const guestList: Guest[] = JSON.parse(cached);
-      guestList.forEach(g => {
-        if (
-          g.date === date &&
-          g.table &&
-          g.table !== "Unassigned" &&
-          g.table !== table &&
-          (!guestToEdit || g.id !== guestToEdit.id) &&
-          (g.status === RsvpStatus.SEATED || g.status === RsvpStatus.ARRIVED)
-        ) {
-          set.add(g.table);
-        }
-      });
-    } catch {}
-    return set;
-  }, [isOpen, date, table, guestToEdit, guestsKey]);
 
   if (!isOpen) return null;
 
@@ -477,7 +566,7 @@ export default function EntryModal({
               >
                 <option value="Unassigned">-- Select Table (Auto/Unassigned) --</option>
                 {tables
-                  .filter(t => (t.override !== "unavailable" || t.name === table) && !occupiedTables.has(t.name))
+                  .filter(t => t.override !== "unavailable" || t.name === table)
                   .map((t, index) => (
                     <option key={index} value={t.name}>
                       {t.icon} {t.name} (Cap: {t.capacity})

@@ -453,11 +453,6 @@ export default function TableMapView({
                             <option value="🔥">🔥 Fire</option>
                             <option value="💧">💧 Water</option>
                             <option value="🍹">🍹 Bar Drink</option>
-                            <option value="🪑">🪑 Chair</option>
-                            <option value="🛋️">🛋️ Sofa</option>
-                            <option value="⭕">⭕ Round</option>
-                            <option value="▭">▭ Rectangle</option>
-                            <option value="⬛">⬛ Square</option>
                           </select>
                         </td>
 
