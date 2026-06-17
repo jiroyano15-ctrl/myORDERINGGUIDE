@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Guest, RsvpStatus, EntryType, TableConfig } from "../types";
+import { Guest, RsvpStatus, EntryType } from "../types";
 import { User, Users, CheckCircle, HelpCircle, Utensils, Clipboard, Clock, TrendingUp, Calendar } from "lucide-react";
 import { getTodayStringInTimezone, getDetectedTimezone } from "../utils/timezone";
 import {
@@ -48,10 +48,9 @@ interface DashboardViewProps {
   onDeleteGuest: (id: string) => void;
   onUpdateStatus: (id: string, newStatus: RsvpStatus) => void;
   timezone?: string;
-  tables?: TableConfig[];
 }
 
-export default function DashboardView({ guests, onEditGuest, onDeleteGuest, onUpdateStatus, timezone, tables = [] }: DashboardViewProps) {
+export default function DashboardView({ guests, onEditGuest, onDeleteGuest, onUpdateStatus, timezone }: DashboardViewProps) {
   const [chartMetric, setChartMetric] = useState<"breakdown" | "pax">("breakdown");
 
   const getUpcomingWeekData = () => {
@@ -146,17 +145,15 @@ export default function DashboardView({ guests, onEditGuest, onDeleteGuest, onUp
   };
 
   const getTableIcon = (tableName: string) => {
-    const match = tables.find(t => t.name === tableName);
-    if (match && match.icon) return match.icon;
     try {
       const cachedTables = localStorage.getItem("guest_rsvp_mngr_tables");
       if (cachedTables) {
         const parsed = JSON.parse(cachedTables);
-        const m = parsed.find((t: any) => t.name === tableName);
-        if (m && m.icon) return m.icon;
+        const match = parsed.find((t: any) => t.name === tableName);
+        if (match && match.icon) return match.icon;
       }
     } catch (e) {}
-    return "🪑";
+    return "🔥";
   };
 
   const todayStr = getTodayString();

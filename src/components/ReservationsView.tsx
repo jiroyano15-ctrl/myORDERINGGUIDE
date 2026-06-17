@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Guest, RsvpStatus, EntryType, TableConfig } from "../types";
+import { Guest, RsvpStatus, EntryType } from "../types";
 import { Search, Calendar, Filter, X, Edit, Trash2 } from "lucide-react";
 
 interface ReservationsViewProps {
@@ -14,7 +14,6 @@ interface ReservationsViewProps {
   onUpdateStatus: (id: string, newStatus: RsvpStatus) => void;
   onBulkUpdateStatus?: (ids: string[], newStatus: RsvpStatus) => void;
   onBulkDeleteGuests?: (ids: string[]) => void;
-  tables?: TableConfig[];
 }
 
 export default function ReservationsView({
@@ -23,21 +22,18 @@ export default function ReservationsView({
   onDeleteGuest,
   onUpdateStatus,
   onBulkUpdateStatus,
-  onBulkDeleteGuests,
-  tables = []
+  onBulkDeleteGuests
 }: ReservationsViewProps) {
   const getTableIcon = (tableName: string) => {
-    const match = tables.find(t => t.name === tableName);
-    if (match && match.icon) return match.icon;
     try {
       const cachedTables = localStorage.getItem("guest_rsvp_mngr_tables");
       if (cachedTables) {
         const parsed = JSON.parse(cachedTables);
-        const m = parsed.find((t: any) => t.name === tableName);
-        if (m && m.icon) return m.icon;
+        const match = parsed.find((t: any) => t.name === tableName);
+        if (match && match.icon) return match.icon;
       }
     } catch (e) {}
-    return "🪑";
+    return "🔥";
   };
 
   // Filters State
@@ -101,15 +97,6 @@ export default function ReservationsView({
   const formatGeneralTime = (timeStr: string) => {
     if (!timeStr) return "—";
     try {
-      // Already 12h format like "07:30 PM" — preserve AM/PM as entered
-      const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-      if (ampmMatch) {
-        const h = parseInt(ampmMatch[1], 10);
-        const m = ampmMatch[2];
-        const ap = ampmMatch[3].toUpperCase();
-        return `${String(h).padStart(2, "0")}:${m} ${ap}`;
-      }
-      // 24h format like "19:30"
       const parts = timeStr.split(":");
       const hour = parseInt(parts[0], 10);
       const min = parseInt(parts[1], 10);
@@ -117,7 +104,7 @@ export default function ReservationsView({
       const ampm = hour >= 12 ? "PM" : "AM";
       const h12 = hour % 12 === 0 ? 12 : hour % 12;
       const mStr = String(min).padStart(2, "0");
-      return `${String(h12).padStart(2, "0")}:${mStr} ${ampm}`;
+      return `${h12}:${mStr} ${ampm}`;
     } catch {
       return timeStr;
     }
