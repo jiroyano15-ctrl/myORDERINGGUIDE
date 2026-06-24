@@ -2459,6 +2459,29 @@ export default function App() {
                 </motion.div>
               )}
 
+              {activeGlobalTab === "staff_mgmt" && (currentUser?.isSubAccount || currentUser?.isAdmin) && (
+                <motion.div
+                  key="staff_mgmt"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col gap-6"
+                >
+                  <div className="flex flex-col gap-1">
+                    <h2 className="font-display text-lg font-black text-slate-800 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-emerald-600" />
+                      Staff Management
+                    </h2>
+                    <p className="text-xs text-slate-500 max-w-2xl">
+                      Create staff accounts that can sign in with username + password. Staff
+                      members get access only to the ordering function tied to this account.
+                    </p>
+                  </div>
+                  <AccountsPanel mode="sub_account" triggerToast={triggerToast} />
+                </motion.div>
+              )}
+
               {activeGlobalTab === "admin" && currentUser?.isAdmin && (
                 <motion.div
                   key="admin"
