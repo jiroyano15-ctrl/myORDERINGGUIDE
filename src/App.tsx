@@ -2468,6 +2468,8 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col gap-8"
                 >
+                  <AccountsPanel mode="admin" triggerToast={triggerToast} />
+
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <Shield className="h-5 w-5 text-amber-500 animate-pulse" />
