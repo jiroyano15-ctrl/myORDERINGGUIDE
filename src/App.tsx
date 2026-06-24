@@ -395,7 +395,7 @@ export default function App() {
     }));
   }, []);
   const [customNotes, setCustomNotes] = useState("");
-  const [activeGlobalTab, setActiveGlobalTab] = useState<"catalog" | "cart" | "history" | "admin" | "db_hub" | "ordering" | "consumption">("catalog");
+  const [activeGlobalTab, setActiveGlobalTab] = useState<"catalog" | "cart" | "history" | "admin" | "db_hub" | "ordering" | "consumption" | "staff_mgmt">("catalog");
   
   // Kitchen workflow sections lift state up to share filter globally
   const [sectionsList, setSectionsList] = useState<string[]>(() => {
