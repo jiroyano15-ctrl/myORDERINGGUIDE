@@ -19,6 +19,8 @@ import SidebarCart from "./components/SidebarCart";
 import OrderHistoryList from "./components/OrderHistoryList";
 import LoginScreen from "./components/LoginScreen";
 import ConsumptionDashboard from "./components/ConsumptionDashboard";
+import AccountsPanel from "./components/AccountsPanel";
+import { claimAdminRole } from "./lib/api/accounts.functions";
 import { 
   Check, 
   AlertCircle, 
