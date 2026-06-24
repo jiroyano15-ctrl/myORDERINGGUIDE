@@ -1031,7 +1031,7 @@ export default function App() {
     triggerToast("Your session has been logged out successfully.", "info");
   };
 
-  const processGoogleUser = useCallback((user: { id: string; email?: string | null; user_metadata?: any }) => {
+  const processGoogleUser = useCallback(async (user: { id: string; email?: string | null; user_metadata?: any }) => {
     if (!user.email) {
       triggerToast("Google login failed: account does not have a valid email address.", "rose");
       return;
@@ -1045,21 +1045,56 @@ export default function App() {
       emailLower === "jeromelpintero@gmail.com" ||
       emailLower === "hajime015@gmail.com";
 
-    if (isAdminEmail) {
+    // Pull cloud roles (admin / sub_account) — recognizes co-admins promoted via Transfer Ownership.
+    let cloudRoles: string[] = [];
+    let cloudParent: string | null = null;
+    try {
+      const { getMyAccountContext } = await import("./lib/api/accounts.functions");
+      const ctx = await getMyAccountContext();
+      cloudRoles = ctx.roles ?? [];
+      cloudParent = ctx.parentUserId ?? null;
+    } catch (e) {
+      console.warn("getMyAccountContext failed", e);
+    }
+
+    if (isAdminEmail || cloudRoles.includes("admin")) {
       const appUser: AppUser = {
         uid: user.id,
         email: user.email,
         displayName,
         photoURL,
         isAdmin: true,
-        isSubAccount: false,
+        isSubAccount: cloudRoles.includes("sub_account"),
         role: "Admin",
       };
       localStorage.setItem("kitchen_app_sandbox_admin_session", JSON.stringify(appUser));
       localStorage.removeItem("kitchen_app_subaccount_session");
       setCurrentUser(appUser);
       setIsLoginModalOpen(false);
-      triggerToast(`Welcome back, Administrator! Signed in as ${appUser.displayName}.`, "success");
+      // Make sure hardcoded admin emails always have a cloud admin row.
+      if (isAdminEmail) {
+        try { await claimAdminRole(); } catch { /* best-effort */ }
+      }
+      triggerToast(`Welcome, Administrator! Signed in as ${appUser.displayName}.`, "success");
+      return;
+    }
+
+    if (cloudRoles.includes("sub_account")) {
+      const appUser: AppUser = {
+        uid: user.id,
+        email: user.email,
+        displayName,
+        photoURL,
+        isAdmin: false,
+        isSubAccount: true,
+        role: "Sub Account",
+        adminUid: cloudParent ?? undefined,
+      };
+      localStorage.setItem("kitchen_app_subaccount_session", JSON.stringify(appUser));
+      localStorage.removeItem("kitchen_app_sandbox_admin_session");
+      setCurrentUser(appUser);
+      setIsLoginModalOpen(false);
+      triggerToast(`Sub-account signed in as ${appUser.displayName}.`, "success");
       return;
     }
 
@@ -1090,10 +1125,11 @@ export default function App() {
     // Not registered — sign back out
     supabase.auth.signOut().catch(() => {});
     triggerToast(
-      `Access Denied: Google account "${user.email}" is not registered as an Admin or Sub-Account staff member.`,
+      `Access Denied: Google account "${user.email}" is not registered. Ask an admin to link your email as a sub-account.`,
       "rose"
     );
   }, []);
+
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
